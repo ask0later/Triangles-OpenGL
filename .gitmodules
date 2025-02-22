@@ -1,0 +1,3 @@
+[submodule "Triangles"]
+	path = Triangles
+	url = git@github.com:ogkisque/Triangles.git
