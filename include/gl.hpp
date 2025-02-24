@@ -80,7 +80,7 @@ namespace gl {
     class Renderer;
     class Camera;
     class Scene;
-    class EventHandler;
+    class IEventHandler;
 
     template <typename T>
     struct UniformSeter final {};
@@ -113,7 +113,7 @@ namespace gl {
             glfwTerminate();
         }
 
-        void SetEventHandler(std::unique_ptr<EventHandler> &&handler) {
+        void SetEventHandler(std::unique_ptr<IEventHandler> &&handler) {
             handler_ = std::move(handler);
         }    
 
@@ -127,7 +127,7 @@ namespace gl {
         }
         
         GLFWwindow* window_;
-        std::unique_ptr<EventHandler> handler_;
+        std::unique_ptr<IEventHandler> handler_;
     }; // class Window
 
     class IShader {
@@ -186,7 +186,6 @@ namespace gl {
 
         void Link() {
             glLinkProgram(id_);
-
             int success;
             glGetProgramiv(id_, GL_LINK_STATUS, &success);
             if (!success) {
@@ -337,7 +336,13 @@ namespace gl {
         glm::vec3 up_;
     }; // class Camera
 
-    class EventHandler final {
+    class IEventHandler {
+    public:
+        virtual void UpdateEvent() = 0;
+        ~IEventHandler() {}
+    }; // class IEventHandler
+
+    class EventHandler final : public IEventHandler {
     public:
         EventHandler(Window &window, Camera &camera) : window_(window), camera_(camera) {
             glfwSetWindowUserPointer(window.Get(), &camera_);
@@ -351,7 +356,7 @@ namespace gl {
             glfwSetFramebufferSizeCallback(window_.Get(), callback);
         }
     
-        void UpdateEvent() {
+        void UpdateEvent() override {
             const float camera_speed = 0.05f;
             if (glfwGetKey(window_.Get(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window_.Get(), true);
@@ -419,7 +424,6 @@ namespace gl {
 
             program_.Link();
         }
-
         
         void Render(Scene &scene, const Camera &camera) {
             glClearColor(0.5f, 0.1f, 0.5f, 1.0f);

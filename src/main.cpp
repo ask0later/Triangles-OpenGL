@@ -3,13 +3,15 @@
 #include <iostream>
 #include <cmath>
 
+constexpr int START_WIDHT = 800, START_HEIGHT = 600;
+
 int main() {
     scene::TriangleScene tscene{};
     tscene.Make();
     
-    gl::Window window{800, 600, "Triangle"};
+    gl::Window window{START_WIDHT, START_HEIGHT, "Triangle scene"};
     gl::Camera camera{};
-    auto handler = std::make_unique<gl::EventHandler>(window, camera);
+    std::unique_ptr<gl::IEventHandler> handler = std::move(std::make_unique<gl::EventHandler>(window, camera));
     window.SetEventHandler(std::move(handler));
 
     gl::Renderer renderer{};
