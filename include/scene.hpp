@@ -102,13 +102,10 @@ namespace scene {
             }
 
             octotree::intersect_figs<float>(figs, intersected_figs);
-            for (auto i : intersected_figs) {
-                std::cerr << i << std::endl;
-            }
+            
             auto it = intersected_figs.begin();
             auto end = intersected_figs.end();
 
-            std::cerr << fig_count << std::endl;
             for (size_t i = 0; i < fig_count; ++i) {
                 if (it != end && *it == i) {
                     ++it;
@@ -123,12 +120,6 @@ namespace scene {
                 auto normal = glm::normalize(glm::cross(AB, AC));
                 normals_.push_back(normal.x); normals_.push_back(normal.y); normals_.push_back(normal.z);
             }
-
-            for (auto i : colors_) {
-                std::cerr << i << " ??" << std::endl;
-            }
-
-            std::cerr << coords_.size() << colors_.size() << normals_.size() << std::endl;
             
             assert(normals_.size() == colors_.size());
             assert(normals_.size() == 3 * fig_count);
