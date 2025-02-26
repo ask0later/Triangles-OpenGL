@@ -18,69 +18,8 @@
 
 namespace gl {
 
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 0.0f,
-     
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-     
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-     
-         0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-     
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
-     
-        -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f
-    };
-    
-    
-    
-    glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-4.5f, -2.1f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.3f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.6f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-
     class Renderer;
     class Camera;
-    class Scene;
-    class IEventHandler;
 
     template <typename T>
     struct UniformSeter final {};
@@ -92,6 +31,46 @@ namespace gl {
         }
     };
 
+    template <> struct UniformSeter<glm::vec3> {
+        static void Set(unsigned int shader_id, const std::string &name, const glm::vec3 &value) {
+            unsigned int loc = glGetUniformLocation(shader_id, name.data());
+            glUniform3fv(loc, 1, glm::value_ptr(value));
+        }
+    };
+
+    class IMesh {
+    public:
+        virtual ~IMesh() {}
+        virtual void Draw() = 0;
+    }; // class IMesh
+
+    class IShader {
+    public:
+        virtual ~IShader() {}
+        virtual int Use() const = 0;
+        virtual void Compile(const std::string &file_name) = 0;
+    }; // class IShader
+
+    class IEventHandler {
+    public:
+        virtual void UpdateEvent() = 0;
+        ~IEventHandler() {}
+    }; // class IEventHandler
+
+    class Scene {
+    public:
+        void AddObject(std::unique_ptr<IMesh> &&obj) {
+            objects_.push_back(std::move(obj));
+        }
+    
+        const std::vector<std::unique_ptr<IMesh>> &GetObjects() const {
+            return objects_;
+        }
+    
+    private:
+        std::vector<std::unique_ptr<IMesh>> objects_;
+    };
+        
     class Window final {
     public:
         Window(int widht = 800, int height = 600, std::string title = "") {
@@ -130,12 +109,70 @@ namespace gl {
         std::unique_ptr<IEventHandler> handler_;
     }; // class Window
 
-    class IShader {
+    class Program final {
     public:
-        virtual ~IShader() {}
-        virtual int Use() const = 0;
-        virtual void Compile(const std::string &file_name) = 0;
-    }; // class IShader
+        Program() {
+            id_ = glCreateProgram();
+        }
+
+        void AttachShader(const IShader& shader_obj) {
+            glAttachShader(id_, shader_obj.Use());
+        }
+
+        void Link() {
+            glLinkProgram(id_);
+            int success;
+            glGetProgramiv(id_, GL_LINK_STATUS, &success);
+            if (!success) {
+                throw std::runtime_error("program linking is failed");
+            }
+        }
+
+        void Run() {
+            glUseProgram(id_);
+        }
+        
+        int operator()() const {
+            return id_;
+        }
+    private:
+        int id_;
+    }; // class Program
+    
+    class TriangleMesh final : public IMesh {
+    public:
+        TriangleMesh(size_t elem_count) : elem_count_(elem_count) {}
+
+        void LoadData(const std::vector<float> &vertices) {
+            glGenVertexArrays(1, &VAO_);
+            glBindVertexArray(VAO_);
+
+            glGenBuffers(1, &VBO_);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+            
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+            
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 3));
+            glEnableVertexAttribArray(1);
+
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 6));
+            glEnableVertexAttribArray(2);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+        }
+
+        void Draw() override {
+            glBindVertexArray(VAO_);
+            glDrawArrays(GL_TRIANGLES, 0, elem_count_);
+        }
+    private:
+        size_t elem_count_;
+        unsigned int VBO_, VAO_, EBO_;  
+    }; // class Mesh
 
     class Shader final : public IShader {
     public:
@@ -174,93 +211,6 @@ namespace gl {
         int shader_;
     }; // class Shader
 
-    class Program final {
-    public:
-        Program() {
-            id_ = glCreateProgram();
-        }
-
-        void AttachShader(const IShader& shader_obj) {
-            glAttachShader(id_, shader_obj.Use());
-        }
-
-        void Link() {
-            glLinkProgram(id_);
-            int success;
-            glGetProgramiv(id_, GL_LINK_STATUS, &success);
-            if (!success) {
-                throw std::runtime_error("program linking is failed");
-            }
-        }
-
-        void Run() {
-            glUseProgram(id_);
-        }
-        
-        int operator()() const {
-            return id_;
-        }
-    private:
-        int id_;
-    }; // class Program
-
-    class Buffer final {
-    public:
-        Buffer() {
-            glGenBuffers(1, &id_);
-        }
-
-        ~Buffer() {
-            glDeleteBuffers(1, &id_);
-        }
-
-        template <typename T>
-        void Store(const T &data, int type) {
-            glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, type);
-        }
-
-        void Bind(unsigned int obj = 0) {
-            glBindBuffer(GL_ARRAY_BUFFER, obj);
-        }
-    
-        unsigned int operator()() {
-            return id_;
-        }
-
-    private:
-        unsigned int id_ = 0;
-    }; // class Buffer
-
-    class AttributeArray final {
-    public:
-        AttributeArray() {
-            glGenVertexArrays(1, &id_);
-        }
-
-        ~AttributeArray() {
-            glDeleteVertexArrays(1, &id_);
-        }
-
-        void Bind(unsigned int obj = 0) {
-            glBindVertexArray(obj);
-        }
-
-        void Set(unsigned int location, unsigned int attr_size, unsigned int full_size, int type_el, unsigned int size_el, unsigned int offset = 0) {
-            glVertexAttribPointer(location, attr_size, GL_FLOAT, GL_FALSE, full_size * size_el, reinterpret_cast<void *>(offset * size_el));
-        }
-
-        void Enable(unsigned int location = 0) {
-            glEnableVertexAttribArray(location);
-        }
-
-        unsigned int operator()() {
-            return id_;
-        }
-
-    private:
-        unsigned int id_ = 0;
-    }; // class AttributeArray
-
     class Camera final {
     public:
         Camera() {
@@ -286,20 +236,28 @@ namespace gl {
             aspect_ = aspect;
         }
 
-        glm::vec3 GetPosition() {
+        glm::vec3 GetPosition() const {
             return position_;
         }
 
-        glm::vec3 GetDirection() {
+        glm::vec3 GetTarget() const {
+            return target_;
+        }
+
+        glm::vec3 GetDirection() const {
             return direction_;
         }
 
-        glm::vec3 GetUp() {
+        glm::vec3 GetUp() const {
             return up_;
         }
 
-        glm::vec3 GetRight() {
+        glm::vec3 GetRight() const {
             return right_;
+        }
+
+        float GetFoV() const {
+            return FoV_;
         }
 
         glm::mat4 GetViewMatrix() const {
@@ -336,12 +294,6 @@ namespace gl {
         glm::vec3 up_;
     }; // class Camera
 
-    class IEventHandler {
-    public:
-        virtual void UpdateEvent() = 0;
-        ~IEventHandler() {}
-    }; // class IEventHandler
-
     class EventHandler final : public IEventHandler {
     public:
         EventHandler(Window &window, Camera &camera) : window_(window), camera_(camera) {
@@ -357,62 +309,48 @@ namespace gl {
         }
     
         void UpdateEvent() override {
-            const float camera_speed = 0.05f;
             if (glfwGetKey(window_.Get(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
                 glfwSetWindowShouldClose(window_.Get(), true);
             }
             if (glfwGetKey(window_.Get(), GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_UP) == GLFW_PRESS) {
-                camera_.SetPosition(camera_.GetPosition() + camera_speed * camera_.GetUp());
+                camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetUp());
             }    
             if (glfwGetKey(window_.Get(), GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_DOWN) == GLFW_PRESS) {
-                camera_.SetPosition(camera_.GetPosition() - camera_speed * camera_.GetUp());
+                camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetUp());
             }
             if (glfwGetKey(window_.Get(), GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_LEFT) == GLFW_PRESS) {
-                camera_.SetPosition(camera_.GetPosition() + camera_speed * camera_.GetRight());
+                camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetRight());
             }
             if (glfwGetKey(window_.Get(), GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_RIGHT) == GLFW_PRESS) {
-                camera_.SetPosition(camera_.GetPosition() - camera_speed * camera_.GetRight());
+                camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetRight());
             }
             if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
                 if (glfwGetKey(window_.Get(), GLFW_KEY_EQUAL) == GLFW_PRESS) {
-                    camera_.SetPosition(camera_.GetPosition() + camera_speed * camera_.GetDirection());
+                    camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetDirection());
                 }
                 else if (glfwGetKey(window_.Get(), GLFW_KEY_MINUS) == GLFW_PRESS) {
-                    camera_.SetPosition(camera_.GetPosition() - camera_speed * camera_.GetDirection());
+                    camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetDirection());
                 }
+            }
+            if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                camera_speed_ = 0.20f;
+            }
+            if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+                camera_speed_ = 0.05f;
             }
         }
 
     private:
+        float camera_speed_ = 0.05f;
         Window& window_;
         Camera& camera_;
     };
-
-    class Scene final {
-    public:
-        Scene() {
-            vao.Bind(vao());
-            vbo.Bind(vbo());
-            
-            vbo.Store(vertices, GL_STATIC_DRAW);
-
-            vao.Set(0, 3, 6, GL_FLOAT, sizeof(float));
-            vao.Enable();
-            vao.Set(1, 3, 6, GL_FLOAT, sizeof(float), 3);
-            vao.Enable(1);
-        
-            vbo.Bind();
-            vao.Bind();
-        }
-
-        AttributeArray vao;
-        Buffer vbo;
-    }; // class Scene
     
     class Renderer final {
     public:
         Renderer() : program_() {
             glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
 
             gl::Shader vertex{GL_VERTEX_SHADER};
             vertex.Compile("include/shaders/triangle.vs");            
@@ -426,20 +364,27 @@ namespace gl {
         }
         
         void Render(Scene &scene, const Camera &camera) {
-            glClearColor(0.5f, 0.1f, 0.5f, 1.0f);
+            glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
             program_.Run();
-    
-            glm::mat4 model = glm::mat4(1.0f);
+        
             glm::mat4 projection = camera.GetProjectionMatrix();
             glm::mat4 view = camera.GetViewMatrix();
             
+            glm::vec3 lightPos = camera.GetTarget();
+            glm::vec3 lightColor = glm::vec3{1.0f, 1.0f, 1.0f};
+
             gl::template UniformSeter<glm::mat4>::Set(program_(), "projection", projection);
             gl::template UniformSeter<glm::mat4>::Set(program_(), "view", view);
-            gl::template UniformSeter<glm::mat4>::Set(program_(), "model", model);
+
+            gl::template UniformSeter<glm::vec3>::Set(program_(), "lightPos", lightPos);
+            gl::template UniformSeter<glm::vec3>::Set(program_(), "lightColor", lightColor);
             
-            scene.vao.Bind(scene.vao());
+            auto &&vector = scene.GetObjects();
+            for (auto &&it : vector) {
+                it->Draw();
+            }
         }
 
         ~Renderer() {
@@ -455,8 +400,6 @@ namespace gl {
             handler_->UpdateEvent();
             
             renderer.Render(scene, camera);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-
             glfwSwapBuffers(window_);
             glfwPollEvents();
         }
