@@ -15,8 +15,48 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <format>
+#include <type_traits>
 
 namespace gl {
+
+    class glException : public std::exception {
+    public:
+        explicit glException(const std::string &message) : message_(message) {}
+
+        const char *what() const noexcept override {
+            return message_.c_str();
+        }
+    private:
+        std::string message_;
+    }; // class glException
+
+    #define glRUN(func, ...) \
+        glRun(__LINE__, __FILE__, #func, func __VA_OPT__(,) __VA_ARGS__)
+
+    void glCheckError(int line, std::string_view file_name, std::string_view func_name) {
+        std::cerr << "S";
+        if (glGetError() != GL_NO_ERROR) {
+            std::string mes = std::format("OpenGL lib error in '{}' file on line '{}', when calling the function '{}'.\n", 
+                file_name, line, func_name);
+
+            throw glException(mes);
+        }
+        std::cerr << "C";
+    }
+
+    template <typename FuncT, typename... Args>
+    auto glRun(int line, std::string_view file_name, std::string_view func_name, 
+    FuncT func, Args&&... args) -> decltype(func(std::forward<Args>(args)...)) {
+        if constexpr (std::is_void_v<decltype(func(std::forward<Args>(args)...))>) {
+            func(std::forward<Args>(args)...);
+            glCheckError(line, file_name, func_name);
+        } else {
+            auto result = func(std::forward<Args>(args)...);
+            glCheckError(line, file_name, func_name);
+            return result;
+        }
+    }
 
     class Renderer;
     class Camera;
@@ -26,15 +66,15 @@ namespace gl {
 
     template <> struct UniformSeter<glm::mat4> {
         static void Set(unsigned int shader_id, const std::string &name, const glm::mat4 &value) {
-            unsigned int loc = glGetUniformLocation(shader_id, name.data());
-            glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
+            auto loc = glRUN(glGetUniformLocation, shader_id, name.data());
+            glRUN(glUniformMatrix4fv, loc, 1, GL_FALSE, glm::value_ptr(value));
         }
     };
 
     template <> struct UniformSeter<glm::vec3> {
         static void Set(unsigned int shader_id, const std::string &name, const glm::vec3 &value) {
-            unsigned int loc = glGetUniformLocation(shader_id, name.data());
-            glUniform3fv(loc, 1, glm::value_ptr(value));
+            auto loc = glRUN(glGetUniformLocation, shader_id, name.data());
+            glRUN(glUniform3fv, loc, 1, glm::value_ptr(value));
         }
     };
 
@@ -77,13 +117,12 @@ namespace gl {
             glfwInit();
             window_ = glfwCreateWindow(widht, height, title.data(), NULL, NULL);
             if (window_ == nullptr) {
-                throw std::runtime_error("Failed to create a window");
+                throw glException("Failed to create a window");
             }
 
             glfwMakeContextCurrent(window_);
-
             if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-                throw std::runtime_error("Failed to initialize GLAD");
+                throw glException("Failed to initialize GLAD");
             }
         }
 
@@ -102,7 +141,7 @@ namespace gl {
     
     private:
         bool IsShouldBeClosed() {
-            return glfwWindowShouldClose(window_);
+            return glRUN(glfwWindowShouldClose, window_);
         }
         
         GLFWwindow* window_;
@@ -112,24 +151,24 @@ namespace gl {
     class Program final {
     public:
         Program() {
-            id_ = glCreateProgram();
+            id_ = glRUN(glCreateProgram);
         }
 
         void AttachShader(const IShader& shader_obj) {
-            glAttachShader(id_, shader_obj.Use());
+            glRUN(glAttachShader, id_, shader_obj.Use());
         }
 
         void Link() {
-            glLinkProgram(id_);
+            glRUN(glLinkProgram, id_);
             int success;
-            glGetProgramiv(id_, GL_LINK_STATUS, &success);
+            glRUN(glGetProgramiv, id_, GL_LINK_STATUS, &success);
             if (!success) {
-                throw std::runtime_error("program linking is failed");
+                throw glException("program linking is failed");
             }
         }
 
         void Run() {
-            glUseProgram(id_);
+            glRUN(glUseProgram, id_);
         }
         
         int operator()() const {
@@ -144,30 +183,30 @@ namespace gl {
         TriangleMesh(size_t elem_count) : elem_count_(elem_count) {}
 
         void LoadData(const std::vector<float> &vertices) {
-            glGenVertexArrays(1, &VAO_);
-            glBindVertexArray(VAO_);
+            glRUN(glGenVertexArrays, 1, &VAO_);
+            glRUN(glBindVertexArray, VAO_);
 
-            glGenBuffers(1, &VBO_);
-            glBindBuffer(GL_ARRAY_BUFFER, VBO_);
+            glRUN(glGenBuffers, 1, &VBO_);
+            glRUN(glBindBuffer, GL_ARRAY_BUFFER, VBO_);
 
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+            glRUN(glBufferData, GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
             
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(0);
+            glRUN(glVertexAttribPointer, 0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+            glRUN(glEnableVertexAttribArray, 0);
             
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 3));
-            glEnableVertexAttribArray(1);
+            glRUN(glVertexAttribPointer, 1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 3));
+            glRUN(glEnableVertexAttribArray, 1);
 
-            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 6));
-            glEnableVertexAttribArray(2);
+            glRUN(glVertexAttribPointer, 2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*) (sizeof(float) * 6));
+            glRUN(glEnableVertexAttribArray, 2);
 
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
+            glRUN(glBindBuffer, GL_ARRAY_BUFFER, 0);
+            glRUN(glBindVertexArray, 0);
         }
 
         void Draw() override {
-            glBindVertexArray(VAO_);
-            glDrawArrays(GL_TRIANGLES, 0, elem_count_);
+            glRUN(glBindVertexArray, VAO_);
+            glRUN(glDrawArrays, GL_TRIANGLES, 0, elem_count_);
         }
     private:
         size_t elem_count_;
@@ -177,7 +216,7 @@ namespace gl {
     class Shader final : public IShader {
     public:
         Shader(int type) {
-            shader_ = glCreateShader(type);
+            shader_ = glRUN(glCreateShader, type);
         }
 
         int Use() const override {
@@ -194,12 +233,12 @@ namespace gl {
             const char *text = program_text.data();
 
             glShaderSource(shader_, 1, &text, NULL);
-            glCompileShader(shader_);
+            glRUN(glCompileShader, shader_);
 
             int success;
-            glGetShaderiv(shader_, GL_COMPILE_STATUS, &success);
+            glRUN(glGetShaderiv, shader_, GL_COMPILE_STATUS, &success);
             if (!success) {
-                throw std::runtime_error("Failed to compile shader");
+                throw glException("Failed to compile shader");
             }
         }
         
@@ -217,7 +256,7 @@ namespace gl {
             UpdatePosition();
         }
 
-        Camera(glm::vec3 position, glm::vec3 target, float FoV, float aspect, float near, float far)
+        Camera(glm::vec3 position, glm::vec3 target, float FoV = 45.0f, float aspect = 800.0f / 600.0f, float near = 0.1f, float far = 100.0f)
             : position_(position), target_(target), FoV_(FoV), aspect_(aspect), near_(near), far_(far) {
             UpdatePosition();
         }
@@ -270,7 +309,7 @@ namespace gl {
 
         void UpdateAspect() {
             GLint viewport[4];
-            glGetIntegerv(GL_VIEWPORT, viewport);
+            glRUN(glGetIntegerv, GL_VIEWPORT, viewport);
             aspect_ = static_cast<float>(viewport[2]) / viewport[3];
         }
 
@@ -297,15 +336,15 @@ namespace gl {
     class EventHandler final : public IEventHandler {
     public:
         EventHandler(Window &window, Camera &camera) : window_(window), camera_(camera) {
-            glfwSetWindowUserPointer(window.Get(), &camera_);
+            glRUN(glfwSetWindowUserPointer, window.Get(), &camera_);
 
             auto callback = [] (GLFWwindow* window, int widht, int height) {
-                glViewport(0, 0, widht, height);
-                Camera *camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+                glRUN(glViewport, 0, 0, widht, height);
+                Camera *camera = static_cast<Camera*>(glRUN(glfwGetWindowUserPointer, window));
                 camera->SetAspect(static_cast<float>(widht) / height);
             };
     
-            glfwSetFramebufferSizeCallback(window_.Get(), callback);
+            glRUN(glfwSetFramebufferSizeCallback, window_.Get(), callback);
         }
     
         void UpdateEvent() override {
@@ -364,8 +403,8 @@ namespace gl {
         }
         
         void Render(Scene &scene, const Camera &camera) {
-            glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glRUN(glClearColor, 0.4f, 0.4f, 0.4f, 1.0f);
+            glRUN(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
             program_.Run();
         
@@ -400,8 +439,8 @@ namespace gl {
             handler_->UpdateEvent();
             
             renderer.Render(scene, camera);
-            glfwSwapBuffers(window_);
-            glfwPollEvents();
+            glRUN(glfwSwapBuffers, window_);
+            glRUN(glfwPollEvents);
         }
     }
 }; // namespace gl
