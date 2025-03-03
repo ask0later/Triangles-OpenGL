@@ -35,14 +35,12 @@ namespace gl {
         glRun(__LINE__, __FILE__, #func, func __VA_OPT__(,) __VA_ARGS__)
 
     void glCheckError(int line, std::string_view file_name, std::string_view func_name) {
-        std::cerr << "S";
         if (glGetError() != GL_NO_ERROR) {
             std::string mes = std::format("OpenGL lib error in '{}' file on line '{}', when calling the function '{}'.\n", 
                 file_name, line, func_name);
 
             throw glException(mes);
         }
-        std::cerr << "C";
     }
 
     template <typename FuncT, typename... Args>
@@ -348,38 +346,42 @@ namespace gl {
         }
     
         void UpdateEvent() override {
-            if (glfwGetKey(window_.Get(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_ESCAPE, GLFW_PRESS)) {
                 glfwSetWindowShouldClose(window_.Get(), true);
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_UP) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_W, GLFW_PRESS) || UpdateKey(GLFW_KEY_UP, GLFW_PRESS)) {
                 camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetUp());
             }    
-            if (glfwGetKey(window_.Get(), GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_DOWN) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_S, GLFW_PRESS) || UpdateKey(GLFW_KEY_DOWN, GLFW_PRESS)) {
                 camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetUp());
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_LEFT) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_A, GLFW_PRESS) || UpdateKey(GLFW_KEY_LEFT, GLFW_PRESS)) {
                 camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetRight());
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window_.Get(), GLFW_KEY_RIGHT) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_D, GLFW_PRESS) || UpdateKey(GLFW_KEY_RIGHT, GLFW_PRESS)) {
                 camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetRight());
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-                if (glfwGetKey(window_.Get(), GLFW_KEY_EQUAL) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_LEFT_CONTROL, GLFW_PRESS)) {
+                if (UpdateKey(GLFW_KEY_EQUAL, GLFW_PRESS)) {
                     camera_.SetPosition(camera_.GetPosition() + camera_speed_ * camera_.GetDirection());
                 }
-                else if (glfwGetKey(window_.Get(), GLFW_KEY_MINUS) == GLFW_PRESS) {
+                else if (UpdateKey(GLFW_KEY_MINUS, GLFW_PRESS)) {
                     camera_.SetPosition(camera_.GetPosition() - camera_speed_ * camera_.GetDirection());
                 }
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            if (UpdateKey(GLFW_KEY_LEFT_SHIFT, GLFW_PRESS)) {
                 camera_speed_ = 0.20f;
             }
-            if (glfwGetKey(window_.Get(), GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+            if (UpdateKey(GLFW_KEY_LEFT_SHIFT, GLFW_RELEASE)) {
                 camera_speed_ = 0.05f;
             }
         }
 
     private:
+        bool UpdateKey(int key, int action) {
+            return glRUN(glfwGetKey, window_.Get(), key) == action;
+        }
+
         float camera_speed_ = 0.05f;
         Window& window_;
         Camera& camera_;
