@@ -5,6 +5,11 @@
 This project is an implementation of the visualization of triangles using the library [OpenGL](https://www.opengl.org/). Triangles that intersect with each other are colored red, the rest are colored blue. 
 
 ## Build and Run
+Cloning repository:
+```
+git clone https://github.com/ask0later/Triangles-OpenGL.git
+git submodule update --init --recursive
+```
 
 If you want to build the project, write this in the project directory:
 ```
