@@ -1,5 +1,9 @@
 #include "gl.hpp"
 #include "scene.hpp"
+#include "window.hpp"
+#include "renderer.hpp"
+#include "mesh.hpp"
+
 #include <iostream>
 #include <cmath>
 
@@ -7,32 +11,34 @@ constexpr int START_WIDHT = 800, START_HEIGHT = 600;
 constexpr float FoV = 45.0f;
 
 int main() try {
-    size_t point_count = 0;
-    std::vector<float> data;
-    glm::vec3 position, target;
-    
+    std::vector<gl::Vertex> vertices;
+    glm::vec3 cam_pos, cam_target;
+    float near = 0.1f, far = 100.0f;
+
     {
         scene::TriangleScene tscene{};
-        tscene.Make();
-        point_count = tscene.GetPointCount();
-        target = tscene.GetCenter();
+        cam_target = tscene.GetCenter();
         auto offset = tscene.GetRadius() / glm::tan(glm::radians(FoV * 0.5f));
-        position = target + glm::vec3(0.0f, 0.0f, offset);
+        cam_pos = cam_target + glm::vec3(0.0f, 0.0f, offset);
+
+        auto nearest_dist = tscene.GetNearestDistanceFrom(cam_pos);
+        auto farest_dist = tscene.GetFarestDistanceFrom(cam_pos);
+
+        near = nearest_dist * 0.1f;
+        far = 1000.0f * near;
+        far = (far > farest_dist) ? far : farest_dist;
+
         scene::GeometryData geom{tscene};
-        geom.GetData(data);
+        geom.GetData(vertices);
     }
 
     gl::Window window{START_WIDHT, START_HEIGHT, "Triangle scene"};
-    gl::Camera camera{position, target};
-    std::unique_ptr<gl::IEventHandler> handler = std::move(std::make_unique<gl::EventHandler>(window, camera));
-    window.SetEventHandler(std::move(handler));
+    gl::Camera camera{cam_pos, cam_target, near, far};
+    window.SetEventHandler(std::move(std::make_unique<gl::EventHandler>(window, camera)));
     gl::Renderer renderer{};
-
-    auto triangles = std::make_unique<gl::TriangleMesh>(point_count);
-    triangles->LoadData(data);
-
-    gl::Scene scene{};
-    scene.AddObject(std::move(triangles));
+    
+    std::vector<std::unique_ptr<gl::IMesh>> scene;
+    scene.push_back(std::move(std::make_unique<gl::TriangleMesh>(vertices)));
     window.DrawFrames(renderer, scene, camera);
 
     return 0;
