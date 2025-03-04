@@ -16,19 +16,21 @@ namespace scene {
             size_t fig_count = 0;
             std::cin >> fig_count;
             if (!std::cin.good())
-                throw std::runtime_error("Input is failed");
+                throw std::runtime_error("Input is failed when reading figure count");
             
             point_count_ = fig_count * 3;
             points_.reserve(point_count_);
-            
+
             for (size_t i = 0; i < point_count_; ++i) {
                 float x, y, z;
                 std::cin >> x >> y >> z;
                 if (!std::cin.good())
-                    throw std::runtime_error("Input is failed");
+                    throw std::runtime_error("Input is failed when reading coordinates");
 
                 points_.emplace_back(x, y, z);
             }
+
+            assert(points_.size() == point_count_);
         }
 
         glm::vec3 GetCenter() {
