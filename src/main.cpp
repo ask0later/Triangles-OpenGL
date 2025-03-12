@@ -1,8 +1,8 @@
-#include "gl.hpp"
+#include "GL/gl.hpp"
+#include "GL/window.hpp"
+#include "GL/renderer.hpp"
+#include "GL/mesh.hpp"
 #include "scene.hpp"
-#include "window.hpp"
-#include "renderer.hpp"
-#include "mesh.hpp"
 
 #include <iostream>
 #include <cmath>
@@ -29,14 +29,14 @@ int main() try {
         far = (far > farest_dist) ? far : farest_dist;
 
         scene::GeometryData geom{tscene};
-        geom.GetData(vertices);
+        vertices = geom.GetData();
     }
 
-    gl::Window window{START_WIDHT, START_HEIGHT, "Triangle scene"};
+    auto &window = gl::Window::QueryWindow(START_WIDHT, START_HEIGHT, "Triangle scene");
     gl::Camera camera{cam_pos, cam_target, near, far};
     window.SetEventHandler(std::move(std::make_unique<gl::EventHandler>(window, camera)));
     gl::Renderer renderer{};
-    
+
     std::vector<std::unique_ptr<gl::IMesh>> scene;
     scene.push_back(std::move(std::make_unique<gl::TriangleMesh>(vertices)));
     window.DrawFrames(renderer, scene, camera);
