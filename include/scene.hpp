@@ -3,7 +3,7 @@
 #include "geometry.hpp"
 #include "octotree.hpp"
 #include "real_nums.hpp"
-#include "gl.hpp"
+#include "GL/gl.hpp"
 #include <cassert>
 
 #include <iostream>
@@ -64,10 +64,6 @@ namespace scene {
             return points_;
         }
 
-        size_t GetPointCount() const {
-            return point_count_;
-        }
-
         float GetMax() const {
             return glm::max(glm::max(max_point_.x, max_point_.y), max_point_.z);
         }
@@ -125,36 +121,43 @@ namespace scene {
 
     class GeometryData final {
     public:
-        GeometryData(const TriangleScene &scene) : point_count_(scene.GetPointCount()) {
-            size_t fig_count = point_count_ / 3;
-
-            coords_.reserve(point_count_);
-            colors_.reserve(fig_count);
-            normals_.reserve(fig_count);
-            
-            std::vector<geometry::figure_t<float>> figs;
-            auto points = scene.GetPoints();
-            CreateFigsAndSetCoords(points, figs);
-            SetColorsAndNormals(points, figs);
+        GeometryData(const TriangleScene &scene) {
+            CreateData(scene.GetPoints());
         }
 
-        void GetData(std::vector<gl::Vertex> &vertices) const {
-            vertices.reserve(point_count_);
+        std::vector<gl::Vertex> GetData() const {
+            std::vector<gl::Vertex> vertices;
+            size_t fig_count = colors_.size();
+            vertices.reserve(3 * fig_count);
             
-            size_t fig_count = point_count_ / 3;
             for (size_t i = 0; i < fig_count; ++i)
                 for (size_t j = 0; j < 3; ++j)
                     vertices.emplace_back(coords_[3 * i + j], colors_[i], normals_[i]);
 
-            assert(vertices.size() == point_count_);
+            return vertices;
         }
 
     private:
-        void CreateFigsAndSetCoords(const std::vector<glm::vec3> points, std::vector<geometry::figure_t<float>> &figs) {
-            figs.reserve(point_count_ / 3);
+        void CreateData(const std::vector<glm::vec3> &points) {
+            size_t points_count = points.size();
+            
+            coords_.reserve(points_count);
+            colors_.reserve(points_count / 3);
+            normals_.reserve(points_count / 3);
+            
+            std::set<size_t> intersected_figs;
+            auto &&figs = CreateFigsAndSetCoords(points);
+            octotree::intersect_figs<float>(figs, intersected_figs);
+            SetColorsAndNormals(points, intersected_figs);
+        }
 
-            for (size_t i = 0; i < point_count_; i += 3) {
-                coords_.push_back(points[i + 0]);
+        std::vector<geometry::figure_t<float>> CreateFigsAndSetCoords(const std::vector<glm::vec3> &points) {
+            std::vector<geometry::figure_t<float>> figs;
+            size_t points_count = points.size();
+            figs.reserve(points_count / 3);
+
+            for (size_t i = 0; i < points_count; i += 3) {
+                coords_.push_back(points[i + 0]); 
                 coords_.push_back(points[i + 1]);
                 coords_.push_back(points[i + 2]);
                 
@@ -166,17 +169,15 @@ namespace scene {
                 figs.push_back(fig);
             }
 
-            assert(3 * figs.size() == point_count_);
+            return figs;
         }
 
-        void SetColorsAndNormals(const std::vector<glm::vec3> points, std::vector<geometry::figure_t<float>> &figs) {
-            std::set<size_t> intersected_figs;
-            octotree::intersect_figs<float>(figs, intersected_figs);
-            
+        void SetColorsAndNormals(const std::vector<glm::vec3> points, const std::set<size_t> &intersected_figs) {
             auto it = intersected_figs.begin();
             auto end = intersected_figs.end();
+            size_t figs_count = coords_.size() / 3;
 
-            for (size_t i = 0; i < point_count_ / 3; ++i) {
+            for (size_t i = 0; i < figs_count; ++i) {
                 if (it != end && *it == i) {
                     ++it;
                     colors_.emplace_back(1.0f, 0.0f, 0.0f);
@@ -197,6 +198,5 @@ namespace scene {
         std::vector<glm::vec3> coords_;
         std::vector<glm::vec3> colors_;
         std::vector<glm::vec3> normals_;
-        size_t point_count_;
     };
 }
