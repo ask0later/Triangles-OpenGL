@@ -8,8 +8,8 @@
 namespace file {
     namespace fs = std::filesystem;
     
-    void FindFile(std::string_view dir, std::string_view extension, std::vector<std::string> &files) {
-        size_t old_size = files.size();
+    std::vector<std::string> FindFile(std::string_view dir, std::string_view extension) {
+        std::vector<std::string> files;
         
         for (const auto& entry : std::filesystem::recursive_directory_iterator(std::filesystem::current_path().string())) {
             if (entry.is_directory() && entry.path().filename() == dir) {
@@ -19,7 +19,7 @@ namespace file {
                     }
                 }
 
-                if (old_size == files.size()) {
+                if (files.empty()) {
                     std::string mes = std::format("File with '{}' extension was not found in the '{}' folder.\n", 
                         extension, dir);
                     throw std::runtime_error(mes);
@@ -27,9 +27,11 @@ namespace file {
             }
         }
 
-        if (old_size == files.size()) {
+        if (files.empty()) {
             std::string mes = std::format("'{}' folder was not found.\n", dir);
             throw std::runtime_error(mes);
         }
+
+        return files;
     }
 } // namespace file
