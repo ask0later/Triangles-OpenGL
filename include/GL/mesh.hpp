@@ -6,16 +6,19 @@ namespace gl {
 
     class TriangleMesh final : public IMesh {
     public:
-        TriangleMesh(const std::vector<Vertex> &vertices) : vertex_count_(vertices.size()) {
+        TriangleMesh(const std::vector<Vertex> &vertices) try : vertex_count_(vertices.size()) {
             GenerateAndBind();
             glRUN(glBufferData, GL_ARRAY_BUFFER, vertex_count_ * sizeof(gl::Vertex), vertices.data(), GL_STATIC_DRAW);
             SetVertexAttribute();
-
             glRUN(glBindBuffer, GL_ARRAY_BUFFER, 0);
             glRUN(glBindVertexArray, 0);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteVertexArrays, 1, &VAO_);
+            glRUN(glDeleteBuffers, 1, &VBO_);
+            throw ex;
         }
 
-        TriangleMesh(const TriangleMesh &other) : vertex_count_(other.vertex_count_) {
+        TriangleMesh(const TriangleMesh &other) try : vertex_count_(other.vertex_count_) {
             GenerateAndBind();
             int buffer_size = 0;
             glRUN(glBindBuffer, GL_ARRAY_BUFFER, other.VBO_);
@@ -31,6 +34,10 @@ namespace gl {
             SetVertexAttribute();
             glRUN(glBindBuffer, GL_ARRAY_BUFFER, 0);
             glRUN(glBindVertexArray, 0);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteVertexArrays, 1, &VAO_);
+            glRUN(glDeleteBuffers, 1, &VBO_);
+            throw ex;
         }
 
         TriangleMesh &operator=(const TriangleMesh &other) {
