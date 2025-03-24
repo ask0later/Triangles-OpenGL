@@ -22,7 +22,13 @@ namespace gl {
                 throw glException("Failed to initialize GLAD");
             }
 
-            SetCallbacks();
+            try {
+                SetCallbacks();
+            } catch (std::exception &ex) {
+                glfwDestroyWindow(window_);
+                glfwTerminate();
+                throw ex;
+            }
         }
 
         ~Window() {
@@ -46,11 +52,12 @@ namespace gl {
 
         GLFWwindow *Get() const noexcept { return window_; }
         
-        void DrawFrames(Renderer &renderer, std::vector<std::unique_ptr<IMesh>> &scene, Camera &camera) const {
+        template <typename SceneIterator>
+        void DrawFrames(SceneIterator begin, SceneIterator end, Renderer &renderer, Camera &camera) const {
             while (!IsShouldBeClosed()) {
                 handler_->UpdateEvent();
                 
-                renderer.Render(scene, camera);
+                renderer.Render(begin, end, camera);
                 glRUN(glfwSwapBuffers, window_);
                 glRUN(glfwPollEvents);
             }
@@ -79,9 +86,9 @@ namespace gl {
 
             auto callback = [] (GLFWwindow* window, int widht, int height) {
                 glRUN(glViewport, 0, 0, widht, height);
-                auto *windowImpl = static_cast<Window*>(glRUN(glfwGetWindowUserPointer, window));
-                assert(windowImpl);
-                windowImpl->CallFrameBufferCallbacks(widht, height);
+                auto *window_impl = static_cast<Window*>(glRUN(glfwGetWindowUserPointer, window));
+                assert(window_impl);
+                window_impl->CallFrameBufferCallbacks(widht, height);
             };
 
             glRUN(glfwSetFramebufferSizeCallback, window_, callback);
