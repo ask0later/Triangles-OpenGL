@@ -39,7 +39,7 @@ int main() try {
 
     std::vector<std::unique_ptr<gl::IMesh>> scene;
     scene.push_back(std::move(std::make_unique<gl::TriangleMesh>(vertices)));
-    window.DrawFrames(renderer, scene, camera);
+    window.DrawFrames(scene.begin(), scene.end(), renderer, camera);
 
     return 0;
 } catch (std::exception &ex) {
