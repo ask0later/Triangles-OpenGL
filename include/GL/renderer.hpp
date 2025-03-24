@@ -4,12 +4,25 @@
 #include "GL/camera.hpp"
 #include "utility.hpp"
 
+#include <type_traits>
+
 namespace gl {
+    namespace details {
+        template <typename T, typename = void>
+        struct is_pointer_like : std::false_type {};
+
+        template <typename T>
+        struct is_pointer_like<T, std::void_t<decltype(*std::declval<T&>())>> : std::true_type {};
+    } // namespace details
+
     constexpr size_t MAX_COUNT_ATTACHED_SHADERS = 2U;
     class Program final {
     public:
-        Program() {
+        Program() try {
             id_ = glRUN(glCreateProgram);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteProgram, id_);
+            throw ex;
         }
 
         ~Program() {
@@ -17,8 +30,11 @@ namespace gl {
             glRUN(glDeleteProgram, id_);
         }
 
-        Program(const Program &other) {
+        Program(const Program &other) try {
             id_ = glRUN(glCreateProgram);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteProgram, id_);
+            throw ex;
         }
 
         Program &operator=(const Program &other) {
@@ -75,16 +91,22 @@ namespace gl {
 
     class Shader final : public IShader {
     public:
-        Shader(int type) : type_(type) {
+        Shader(int type) try : type_(type) {
             shader_ = glRUN(glCreateShader, type_);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteShader, shader_);
+            throw ex;
         }
         
         ~Shader() {
             glRUN(glDeleteShader, shader_);
         }
 
-        Shader(const Shader &other) : type_(other.type_) {
+        Shader(const Shader &other) try : type_(other.type_) {
             shader_ = glRUN(glCreateShader, type_);
+        } catch (std::exception &ex) {
+            glRUN(glDeleteShader, shader_);
+            throw ex;
         }
 
         Shader &operator=(const Shader &other) {
@@ -157,7 +179,13 @@ namespace gl {
             program_.Link();
         }
         
-        void Render(std::vector<std::unique_ptr<IMesh>> &scene, const Camera &camera) {
+        template <typename SceneIterator>
+        void Render(SceneIterator begin, SceneIterator end, const Camera &camera) {
+            using PointerLike = typename std::iterator_traits<SceneIterator>::value_type;
+            static_assert(details::is_pointer_like<PointerLike>::value, "The iterator type must be pointer-like object");
+            using ElementType = typename std::pointer_traits<PointerLike>::element_type;
+            static_assert(std::is_same<ElementType, IMesh>::value, "The iterator type must be point to IMesh");
+
             glRUN(glClearColor, 0.4f, 0.4f, 0.4f, 1.0f);
             glRUN(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -175,8 +203,8 @@ namespace gl {
             SetUniform(program_(), "lightPos", lightPos);
             SetUniform(program_(), "lightColor", lightColor);
             
-            for (auto &&it : scene) {
-                it->Draw();
+            for (auto it = begin; it != end; ++it) {
+                (*it)->Draw();
             }
         }
 
