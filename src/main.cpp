@@ -38,7 +38,7 @@ int main() try {
     gl::Renderer renderer{};
 
     std::vector<std::unique_ptr<gl::IMesh>> scene;
-    scene.push_back(std::move(std::make_unique<gl::TriangleMesh>(vertices)));
+    scene.push_back(std::make_unique<gl::TriangleMesh>(vertices));
     window.DrawFrames(scene.begin(), scene.end(), renderer, camera);
 
     return 0;
